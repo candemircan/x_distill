@@ -23,7 +23,7 @@ def main(args):
 
     annotations = fetch_annotations()
 
-    SAVE_DIR = os.path.join(DATA_DIR, model_name)
+    SAVE_DIR = f"{DATA_DIR}/{model_name}/{token}"
     os.makedirs(SAVE_DIR, exist_ok=True)
 
     for image_id, annotation in tqdm(annotations.items()):
@@ -58,7 +58,7 @@ if __name__ == "__main__":
         "--token",
         type=str,
         choices=["pool", "last"],
-        default="pool",
+        default="last",
         help="Token pooling strategy.",
     )
     args = parser.parse_args()
