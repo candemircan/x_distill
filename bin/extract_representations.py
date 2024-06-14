@@ -46,7 +46,8 @@ def main(args):
         else:  # take the last token
             output = output[:, -1]
 
-        torch.save(output, file_name)
+        # save at full precision for compatability, we can decide later
+        torch.save(output.to(torch.float32), file_name)
 
 
 if __name__ == "__main__":
