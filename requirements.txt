@@ -1,2 +1,7 @@
 pre-commit
 ruff
+torch == 2.3.1
+torchvision == 0.18.1
+transformers == 4.41.2
+lightning == 2.3.0
+clip @ git+https://github.com/openai/CLIP.git
