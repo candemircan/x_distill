@@ -30,6 +30,11 @@ def main(args):
         tokenized = tokenizer(annotation, return_tensors="pt")
         input_ids = tokenized.input_ids.to(model.device)
 
+        file_name = os.path.join(SAVE_DIR, f"{image_id}.pt")
+
+        if os.path.isfile(file_name):
+            continue
+
         output = model(
             input_ids=input_ids, return_dict=True, output_hidden_states=True
         )["hidden_states"]
@@ -41,7 +46,7 @@ def main(args):
         else:  # take the last token
             output = output[:, -1]
 
-        torch.save(output, os.path.join(SAVE_DIR, f"{image_id}.pt"))
+        torch.save(output, file_name)
 
 
 if __name__ == "__main__":
