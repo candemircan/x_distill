@@ -17,7 +17,7 @@ def main(args):
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
-        device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
+        device_map="auto",
         torch_dtype=torch.bfloat16,
     )
 
