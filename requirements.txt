@@ -1,5 +1,8 @@
-pre-commit == 3.7.1
-ruff == 0.4.8
+pre-commit == 3.7.1 # formatting
+ruff == 0.4.8 # formatting
+jupyter-server == 2.14.1 # interactive computing on the server
+ipython == 8.25.0 # interactive computing on the server
+ipykernel == 6.29.4 # interactive computing on the server
 torch == 2.3.1
 torchvision == 0.18.1
 transformers == 4.41.2

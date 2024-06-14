@@ -31,7 +31,6 @@ def load_clip(
         # unfreeze the final projection
         model.proj.requires_grad = True
 
-    # prepare for training (concerns batchnorm etc.)
     model.train()
     return model, preprocess
 
