@@ -1,38 +1,8 @@
-import torch
 from torch import nn
 from torch import optim
-import clip
 import lightning as L
 
-
-def load_clip(
-    model_name: str, device: str
-) -> tuple[torch._script.RecursiveScriptModule, torch.Compose]:
-    """
-    Load and return the vision encoder of the specified CLIP model and the corresponding preprocessing transforms.
-    All but the final projection parameters are frozen. Only works for ViT models for now.
-
-    Args:
-        model_name (str): Must be one of OpenAI clip models. Call `clip.available_models()` to see options.
-        device (str): "cpu" or "cuda"
-
-    Returns:
-        tuple[torch._script.RecursiveScriptModule, torch.Compose]: Jitted vision encoder and the image transforms.
-    """
-    model, preprocess = clip.load(model_name, device=device, jit=True)
-    model = model.visual
-
-    # freeze all
-    for _, param in model.named_parameters():
-        param.requires_grad = False
-
-    # resnets don't have a projection layer
-    if "ViT" in model_name:
-        # unfreeze the final projection
-        model.proj.requires_grad = True
-
-    model.train()
-    return model, preprocess
+from .metrics import class_separation
 
 
 class X_CLIP(nn.Module):
@@ -47,22 +17,53 @@ class X_CLIP(nn.Module):
 
 
 class Lit_X_CLIP(L.LightningModule):
-    def __init__(self, model, metric, lr=1e-3, k=None):
+    def __init__(self, model, metric, lr=1e-3, l2=0.01, k=None):
         super().__init__()
         self.model = model
         self.metric = metric
         self.k = k
         self.lr = lr
+        self.l2 = l2
 
-    def training_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self.model(x)
+        self.save_hyperparameters(ignore=["model"])
 
-        loss = -self.metric(y_hat, y, k=self.k)
+    def training_step(self, batch):
+        x, z = batch
+        z_hat = self.model(x)
+
+        if self.metric.__name__ == "mutual_knn":
+            loss = -self.metric(z, z, k=self.k)
+        else:
+            loss = -self.metric(z_hat, z)
 
         self.log("train_loss", loss)
         return loss
 
+    def validation_class_separation(self, batch):
+        x, z = batch
+
+        z_hat = self.model(x)
+
+        r2 = class_separation(z_hat, z)
+        self.log("class_separation", r2)
+
+    def validation_alignment(self, batch):
+        x, z = batch
+        z_hat = self.model(x)
+
+        if self.metric.__name__ == "mutual_knn":
+            loss = -self.metric(z, z, k=self.k)
+        else:
+            loss = -self.metric(z_hat, z)
+
+        self.log("validation_loss", loss)
+
+    def validation_step(self, batch, dataloader_idx):
+        if dataloader_idx == 0:
+            self.validation_alignment(batch)
+        elif dataloader_idx == 1:
+            self.validation_class_separation(batch)
+
     def configure_optimizers(self):
-        optimizer = optim.Adam(self.parameters(), lr=self.lr)
+        optimizer = optim.SGD(self.parameters(), lr=self.lr, weight_decay=self.l2)
         return optimizer

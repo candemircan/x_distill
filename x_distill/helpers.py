@@ -2,7 +2,40 @@ from collections import defaultdict
 from typing import Dict, List
 import json
 
+import clip
+import torch
+
 from .paths import PROJECT_DIR
+
+
+def load_clip(
+    model_name: str, device: str
+) -> tuple[torch._script.RecursiveScriptModule, torch.Compose]:
+    """
+    Load and return the vision encoder of the specified CLIP model and the corresponding preprocessing transforms.
+    All but the final projection parameters are frozen. Only works for ViT models for now.
+
+    Args:
+        model_name (str): Must be one of OpenAI clip models. Call `clip.available_models()` to see options.
+        device (str): "cpu" or "cuda"
+
+    Returns:
+        tuple[torch._script.RecursiveScriptModule, torch.Compose]: Jitted vision encoder and the image transforms.
+    """
+    model, preprocess = clip.load(model_name, device=device, jit=True)
+    model = model.visual
+
+    # freeze all
+    for _, param in model.named_parameters():
+        param.requires_grad = False
+
+    # resnets don't have a projection layer
+    if "ViT" in model_name:
+        # unfreeze the final projection
+        model.proj.requires_grad = True
+
+    model.train()
+    return model, preprocess
 
 
 def fetch_annotations(

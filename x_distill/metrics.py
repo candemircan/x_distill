@@ -134,3 +134,45 @@ def compute_nearest_neighbors(feats, topk=10):
         (feats @ feats.T).fill_diagonal_(-1e8).argsort(dim=1, descending=True)[:, :topk]
     )
     return knn
+
+
+def cosine_similarity(x1, x2):
+    return torch.nn.functional.cosine_similarity(
+        x1.unsqueeze(1), x2.unsqueeze(0), dim=-1
+    )
+
+
+def class_separation(
+    X: torch.Tensor,  # Feature by observation representation matrix.
+    classes: torch.Tensor,  # Class labels for each observation.
+) -> float:  # The class separation of X
+    """
+    Compute the class separation $R^2$ as defined in [this paper](https://arxiv.org/abs/2010.16402)
+    """
+
+    d_within = 0
+    d_total = 0
+    unique_classes = torch.unique(classes)
+    total_classes = len(unique_classes)
+
+    # Compute the within class distance
+    for current_class in unique_classes:
+        class_examples = X[classes == current_class]
+        total_examples = len(class_examples)
+        if total_examples > 1:
+            pairwise_distances = 1 - cosine_similarity(class_examples, class_examples)
+            d_within += pairwise_distances.sum() / (total_classes * total_examples**2)
+
+    # Compute the total distance
+    for cls_1 in unique_classes:
+        cls_1_examples = X[classes == cls_1]
+        total_examples_1 = len(cls_1_examples)
+        for cls_2 in unique_classes:
+            cls_2_examples = X[classes == cls_2]
+            total_examples_2 = len(cls_2_examples)
+            pairwise_distances = 1 - cosine_similarity(cls_1_examples, cls_2_examples)
+            d_total += pairwise_distances.sum() / (
+                total_classes**2 * total_examples_1 * total_examples_2
+            )
+
+    return 1 - d_within / d_total
