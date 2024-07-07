@@ -1,6 +1,6 @@
 # x_distill
 
-> Project description goes here.
+> Distilling language models to vision models.
 
 ## Setup
 
