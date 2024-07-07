@@ -1,6 +1,6 @@
 import torch
 
-
+# all metrics except the last one are adapted from https://github.com/minyoungg/platonic-rep/blob/main/metrics.py
 def hsic_unbiased(K, L):
     """
     Compute the unbiased Hilbert-Schmidt Independence Criterion (HSIC) as per Equation 5 in the paper.
